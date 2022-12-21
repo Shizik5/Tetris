@@ -1,22 +1,35 @@
+## Тетрис
+Вводим модули и библиотеки для дальнейшей работы:
+```python3
 import pygame as pg
 import random, time, sys
-from pygame.locals import * # Импортирцем модули и библиотеки
-
+from pygame.locals import *
+```
+Для работы игры определяем частоту кадров и размеры окна, будущих фигур, игровой области.
+```python3
 fps = 25
 window_w, window_h = 600, 500
 block, cup_h, cup_w = 20, 20, 10
-
+```
+Задаём время, за которое фигура должна будет переместится в любую сторону или вниз при нажатии игроком на клавиши.
+```python3
 side_freq, down_freq = 0.15, 0.1
-
+```
+Отделяем игровую область cup на определённое расстояние от основного окна.
+```python3
 side_margin = int((window_w - cup_w * block) / 2)
 top_margin = window_h - (cup_h * block) - 5
-
+```
+Теперь определяем цвета, что будут использоваться в дальнейшем.
+```python3
 colors = ((0, 0, 225), (0, 225, 0), (225, 0, 0), (225, 225, 0))
 lightcolors = ((30, 30, 255), (50, 255, 50), (255, 30, 30), (255, 255, 30))
 
 white, gray, black  = (255, 255, 255), (185, 185, 185), (0, 0, 0)
 brd_color, bg_color, txt_color, title_color, info_color = white, black, white, colors[3], colors[0]
-
+```
+Сейчас нужно задать сами фигуры. Как в оригинальной игре они должны двигаться и поворачиваться на 90 градусов. Для этого сделаем область поворота 5*5, где "o" будет обозначать пустую ечейку. Так же мы должны задать форму данной фигуры после поворота. Поэтому пропишем все варианты каждого объекта(S, Z, J, L, I, O, T)
+```python3
 fig_w, fig_h = 5, 5
 empty = 'o'
 
@@ -108,19 +121,24 @@ figures = {'S': [['ooooo',
                  ['ooooo',
                   'ooooo',
                   'oxxxo',
-                  'ooxoo',
+                  'ooxoo',s
                   'ooooo'],
                  ['ooooo',
                   'ooxoo',
                   'oxxoo',
                   'ooxoo',
                   'ooooo']]}
-
+```
+Для паузы мы используем метод, который создаёт доп. поверхность с и последующую заливку экрана паузы цветом с наложением на поверхность окна игры:
+```python3
 def pauseScreen():
         pause = pg.Surface((600, 500), pg.SRCALPHA)   
         pause.fill((0, 0, 255, 127))                        
         display_surf.blit(pause, (0, 0))
-
+```
+### Main часть
+Здесь вводим несколько доп констант, начало игры, её запуск и другие глобальные части.
+```python3
 def main():
     global fps_clock, display_surf, basic_font, big_font
     pg.init()
@@ -134,8 +152,10 @@ def main():
         runTetris()
         pauseScreen()
         showText('Игра закончена')
+```
 
-
+Сам процесс игры(сперва задаётся пустое окно emptycup и движения устанавливаютс на False. Значения меняется по мере отклика клавиатуры и возможности действия):
+```python3
 def runTetris():
     cup = emptycup()
     last_move_down = time.time()
@@ -148,17 +168,22 @@ def runTetris():
     level, fall_speed = calcSpeed(points)
     fallingFig = getNewFig()
     nextFig = getNewFig()
-
+```
+Нужно отобразить события, фигуры и их движение.
+```python3
     while True: 
         if fallingFig == None:
             fallingFig = nextFig
             nextFig = getNewFig()
             last_fall = time.time()
-            
-
             if not checkPos(cup, fallingFig):
                 return
         quitGame()
+```
+Когда фигура приземляется, она принимает значчение None и nextFig становится fallingFig. Если поле будет заполнено, то сработает функция checkPos()
+
+Сейчас расписываем команды для взаимодействия с клавиатурой. В обычном состоянии все клавишии принимают значение False.
+```python3
         for event in pg.event.get(): 
             if event.type == KEYUP:
                 if event.key == K_SPACE:
@@ -206,7 +231,9 @@ def runTetris():
                         if not checkPos(cup, fallingFig, adjY=i):
                             break
                     fallingFig['y'] += i - 1
-
+```
+Надо так же задать, если игрок будет удерживать клавиши:
+```python3
         if (going_left or going_right) and time.time() - last_side_move > side_freq:
             if going_left and checkPos(cup, fallingFig, adjX=-1):
                 fallingFig['x'] -= 1
@@ -217,8 +244,9 @@ def runTetris():
         if going_down and time.time() - last_move_down > down_freq and checkPos(cup, fallingFig, adjY=1):
             fallingFig['y'] += 1
             last_move_down = time.time()
-
-
+```
+Возможен вариант, когда Игрок ничего не трогает. Это тоже надо расписать.
+```python3
         if time.time() - last_fall > fall_speed:       
             if not checkPos(cup, fallingFig, adjY=1):
                 addToCup(cup, fallingFig)
@@ -228,7 +256,9 @@ def runTetris():
             else:
                 fallingFig['y'] += 1
                 last_fall = time.time()
-
+```
+Экран должен обновлятся во время игры:
+```python3
         display_surf.fill(bg_color)
         drawTitle()
         gamecup(cup)
@@ -238,8 +268,12 @@ def runTetris():
             drawFig(fallingFig)
         pg.display.update()
         fps_clock.tick(fps)
+```
+Функция txtObjects() принимает текст, шрифт и цвет, и с помощью метода render() возвращает готовые объекты Surface (поверхность) и Rect (прямоугольник). Эти объекты в дальнейшем обрабатываются методом blitв функции showText(), выводящей информационные надписи и название игры.
 
+Выход из игры обеспечивает функция stopGame(), в которой используется sys.exit() из импортированного в начале кода модуля sys.
 
+```python3
 def txtObjects(text, font, color):
     surf = font.render(text, True, color)
     return surf, surf.get_rect()
@@ -304,14 +338,17 @@ def addToCup(cup, fig):
             if figures[fig['shape']][fig['rotation']][y][x] != empty:
                 cup[x + fig['x']][y + fig['y']] = fig['color']
 
-
+```
+Пустая область создается функцией emptycup():
+```python3
 def emptycup():
     cup = []
     for i in range(cup_w):
         cup.append([empty] * cup_h)
     return cup
-
-
+```
+В игре заполненные ряды должны удалятся и с этим работает clearCompleted() и isCompleted(). После удаления переносим все ряды и нулевой заполняем значением empty.
+```python3
 def incup(x, y):
     return x >= 0 and x < cup_w and y < cup_h
 
@@ -349,8 +386,11 @@ def clearCompleted(cup):
         else:
             y -= 1 
     return removed_lines
+```
 
-
+Теперь созаём фигуры, по 4 ячейки каждая.
+Для рисования блоков используются примитивы rect (прямоугольник) и circle (круг). При желании верхний квадрат можно конвертировать в поверхность (Surface), после чего наложить на эту поверхность изображение или текстовый символ. Функция drawBlock()также используется в drawnextFig() для вывода следующей фигуры справа от игрового поля.
+```python3
 def convertCoords(block_x, block_y):
     return (side_margin + (block_x * block)), (top_margin + (block_y * block))
 
@@ -410,15 +450,18 @@ def drawFig(fig, pixelx=None, pixely=None):
         for y in range(fig_h):
             if figToDraw[y][x] != empty:
                 drawBlock(None, None, fig['color'], pixelx + (x * block), pixely + (y * block))
-
-
+```
+Для удобства создаём картинку следующей фигуры:
+```python3
 def drawnextFig(fig):
     nextSurf = basic_font.render('Следующая:', True, txt_color)
     nextRect = nextSurf.get_rect()
     nextRect.topleft = (window_w - 150, 180)
     display_surf.blit(nextSurf, nextRect)
     drawFig(fig, pixelx=window_w-150, pixely=230)
-
-
+```
+Осталось лишь задать конец кода
+```python3
 if __name__ == '__main__':
     main()
+```
