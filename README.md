@@ -1,6 +1,6 @@
 import pygame as pg
 import random, time, sys
-from pygame.locals import *
+from pygame.locals import * # Импортирцем модули и библиотеки
 
 fps = 25
 window_w, window_h = 600, 500
